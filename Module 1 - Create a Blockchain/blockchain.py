@@ -26,7 +26,7 @@ class Blockchain:
             'proof': proof,
             'previous_hash': self.chain[-1]['hash'] if len(self.chain) > 0 else '0'
         }
-        block_hash = self.hash(block)
+        block_hash = self.hash_block(block)
         block['hash'] = block_hash
         self.chain.append(block)
         return block
@@ -36,7 +36,7 @@ class Blockchain:
         check_proof = False
         previous_proof = self.chain[-1]['proof']
         while check_proof is False:
-            hash_operation = hashlib.sha256(str(new_proof ** 2 - previous_proof ** 2).encode()).hexdigest()
+            hash_operation = self.calculate_hash_operation(new_proof, previous_proof)
             if hash_operation[:4] == '0000':
                 check_proof = True
             else:
@@ -44,9 +44,13 @@ class Blockchain:
         return new_proof
 
     @staticmethod
-    def hash(block):
+    def hash_block(block):
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
+
+    @staticmethod
+    def calculate_hash_operation(new_proof, previous_proof):
+        return hashlib.sha256(str(new_proof ** 2 - previous_proof ** 2).encode()).hexdigest()
 
     def is_chain_valid(self):
         previous_block = self.chain[0]
@@ -54,11 +58,11 @@ class Blockchain:
         while block_index < len(self.chain):
             block = self.chain[block_index]
             previous_block_without_hash = {key: previous_block[key] for key in previous_block if key != 'hash'}
-            if block['previous_hash'] != self.hash(previous_block_without_hash):
+            if block['previous_hash'] != self.hash_block(previous_block_without_hash):
                 return False
             previous_proof = previous_block['proof']
             proof = block['proof']
-            hash_operation = hashlib.sha256(str(proof ** 2 - previous_proof ** 2).encode()).hexdigest()
+            hash_operation = self.calculate_hash_operation(proof, previous_proof)
             if hash_operation[:4] != '0000':
                 return False
             previous_block = block
