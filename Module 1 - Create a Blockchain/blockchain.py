@@ -12,6 +12,7 @@ from flask import Flask, jsonify
 
 
 # Part 1 - Building a Blockchain
+
 class Blockchain:
     def __init__(self):
         self.chain = []
@@ -34,7 +35,7 @@ class Blockchain:
         new_proof = 1
         check_proof = False
         while check_proof is False:
-            hash_operation = hashlib.sha256(str(new_proof**2 - previous_proof**2).encode()).hexdigest()
+            hash_operation = hashlib.sha256(str(new_proof ** 2 - previous_proof ** 2).encode()).hexdigest()
             if hash_operation[:4] == '0000':
                 check_proof = True
             else:
@@ -61,4 +62,11 @@ class Blockchain:
             block_index += 1
         return True
 
+
 # Part 2 - Mining our Blockchain
+
+# Creating a Web App
+app = Flask(__name__)
+
+# Instantiating the Blockchain
+blockchain = Blockchain()
