@@ -17,15 +17,17 @@ from flask import Flask, jsonify
 class Blockchain:
     def __init__(self):
         self.chain = []
-        self.create_block(proof=1, previous_hash='0')
+        self.create_block(proof=1)
 
-    def create_block(self, proof, previous_hash):
+    def create_block(self, proof):
         block = {
             'index': len(self.chain) + 1,
             'timestamp': str(datetime.datetime.now()),
             'proof': proof,
-            'previous_hash': previous_hash
+            'previous_hash': self.chain[-1]['hash'] if len(self.chain) > 0 else '0'
         }
+        block_hash = self.hash(block)
+        block['hash'] = block_hash
         self.chain.append(block)
         return block
 
@@ -52,7 +54,8 @@ class Blockchain:
         block_index = 1
         while block_index < len(self.chain):
             block = self.chain[block_index]
-            if block['previous_hash'] != self.hash(previous_block):
+            previous_block_without_hash = {key: previous_block[key] for key in previous_block if key != 'hash'}
+            if block['previous_hash'] != self.hash(previous_block_without_hash):
                 return False
             previous_proof = previous_block['proof']
             proof = block['proof']
@@ -72,22 +75,24 @@ app = Flask(__name__)
 # Instantiating the Blockchain
 blockchain = Blockchain()
 
+
 # Mining a new block
 @app.route('/mine_block', methods=['GET'])
 def mine_block():
     previous_block = blockchain.get_previous_block()
     previous_proof = previous_block['proof']
     proof = blockchain.proof_of_work(previous_proof)
-    previous_hash = blockchain.hash(previous_block)
-    block = blockchain.create_block(proof, previous_hash)
+    block = blockchain.create_block(proof)
     response = {
         'message': 'Congratulations, you just mined a block!',
         'index': block['index'],
         'timestamp': block['timestamp'],
         'proof': block['proof'],
+        'hash': block['hash'],
         'previous_hash': block['previous_hash']
     }
     return jsonify(response), 200
+
 
 # Getting the full Blockchain
 @app.route('/get_chain', methods=['GET'])
@@ -97,6 +102,7 @@ def get_chain():
         'length': len(blockchain.chain)
     }
     return jsonify(response), 200
+
 
 # Checking if the Blockchain is valid
 @app.route('/is_valid', methods=['GET'])
@@ -108,6 +114,7 @@ def is_valid():
         'message': message,
     }
     return jsonify(response), 200
+
 
 # Running the app
 app.run(host='0.0.0.0', port=5000)
