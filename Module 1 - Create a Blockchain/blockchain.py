@@ -31,12 +31,10 @@ class Blockchain:
         self.chain.append(block)
         return block
 
-    def get_previous_block(self):
-        return self.chain[-1]
-
-    def proof_of_work(self, previous_proof):
+    def proof_of_work(self):
         new_proof = 1
         check_proof = False
+        previous_proof = self.chain[-1]['proof']
         while check_proof is False:
             hash_operation = hashlib.sha256(str(new_proof ** 2 - previous_proof ** 2).encode()).hexdigest()
             if hash_operation[:4] == '0000':
@@ -79,9 +77,7 @@ blockchain = Blockchain()
 # Mining a new block
 @app.route('/mine_block', methods=['GET'])
 def mine_block():
-    previous_block = blockchain.get_previous_block()
-    previous_proof = previous_block['proof']
-    proof = blockchain.proof_of_work(previous_proof)
+    proof = blockchain.proof_of_work()
     block = blockchain.create_block(proof)
     response = {
         'message': 'Congratulations, you just mined a block!',
