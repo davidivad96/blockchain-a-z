@@ -34,7 +34,7 @@ class Blockchain:
             block['timestamp'] = str(datetime.datetime.now())
             block['nonce'] = nonce
             hashed_block = self.__hash_block(block)
-            if hashed_block[:4] == '0' * self.difficulty:
+            if hashed_block[:self.difficulty] == '0' * self.difficulty:
                 block['hash'] = hashed_block
                 nonce_found = True
             else:
@@ -59,7 +59,7 @@ class Blockchain:
             hashed_block = self.__hash_block({key: block[key] for key in block if key != 'hash'})
             # Conditions to verify that the chain is valid
             hash_is_not_correct = block['hash'] != hashed_block
-            hash_leading_zeros_is_not_correct = hashed_block[:4] != '0' * self.difficulty
+            hash_leading_zeros_is_not_correct = hashed_block[:self.difficulty] != '0' * self.difficulty
             linking_is_not_good = block['previous_hash'] != previous_block['hash']
             if hash_is_not_correct or hash_leading_zeros_is_not_correct or linking_is_not_good:
                 return False
