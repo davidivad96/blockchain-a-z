@@ -17,26 +17,26 @@ from flask import Flask, jsonify
 class Blockchain:
     def __init__(self):
         self.chain = []
-        self.create_block(proof=1)
+        self.__create_block(proof=1)
 
-    def create_block(self, proof):
+    def __create_block(self, proof):
         block = {
             'index': len(self.chain) + 1,
             'timestamp': str(datetime.datetime.now()),
             'proof': proof,
             'previous_hash': self.chain[-1]['hash'] if len(self.chain) > 0 else '0'
         }
-        block_hash = self.hash_block(block)
+        block_hash = self.__hash_block(block)
         block['hash'] = block_hash
         self.chain.append(block)
         return block
 
-    def proof_of_work(self):
+    def __proof_of_work(self):
         new_proof = 1
         check_proof = False
         previous_proof = self.chain[-1]['proof']
         while check_proof is False:
-            hash_operation = self.calculate_hash_operation(new_proof, previous_proof)
+            hash_operation = self.__calculate_hash_operation(new_proof, previous_proof)
             if hash_operation[:4] == '0000':
                 check_proof = True
             else:
@@ -44,13 +44,18 @@ class Blockchain:
         return new_proof
 
     @staticmethod
-    def hash_block(block):
+    def __hash_block(block):
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
     @staticmethod
-    def calculate_hash_operation(new_proof, previous_proof):
+    def __calculate_hash_operation(new_proof, previous_proof):
         return hashlib.sha256(str(new_proof ** 2 - previous_proof ** 2).encode()).hexdigest()
+
+    def mine_block(self):
+        proof = self.__proof_of_work()
+        block = self.__create_block(proof)
+        return block
 
     def is_chain_valid(self):
         previous_block = self.chain[0]
@@ -58,11 +63,11 @@ class Blockchain:
         while block_index < len(self.chain):
             block = self.chain[block_index]
             previous_block_without_hash = {key: previous_block[key] for key in previous_block if key != 'hash'}
-            if block['previous_hash'] != self.hash_block(previous_block_without_hash):
+            if block['previous_hash'] != self.__hash_block(previous_block_without_hash):
                 return False
             previous_proof = previous_block['proof']
             proof = block['proof']
-            hash_operation = self.calculate_hash_operation(proof, previous_proof)
+            hash_operation = self.__calculate_hash_operation(proof, previous_proof)
             if hash_operation[:4] != '0000':
                 return False
             previous_block = block
@@ -82,8 +87,7 @@ blockchain = Blockchain()
 # Mining a new block
 @app.route('/mine_block', methods=['GET'])
 def mine_block():
-    proof = blockchain.proof_of_work()
-    block = blockchain.create_block(proof)
+    block = blockchain.mine_block()
     response = {
         'message': 'Congratulations, you just mined a block!',
         'index': block['index'],
