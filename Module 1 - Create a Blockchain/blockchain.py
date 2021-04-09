@@ -17,44 +17,38 @@ from flask import Flask, jsonify
 class Blockchain:
     def __init__(self):
         self.chain = []
-        self.__create_block(proof=1)
+        self.difficulty = 4
+        self.mine_block()
 
-    def __create_block(self, proof):
-        block = {
-            'index': len(self.chain) + 1,
-            'timestamp': str(datetime.datetime.now()),
-            'proof': proof,
-            'previous_hash': self.chain[-1]['hash'] if len(self.chain) > 0 else '0'
-        }
-        block_hash = self.__hash_block(block)
-        block['hash'] = block_hash
+    def __create_block(self, block):
         self.chain.append(block)
-        return block
 
     def __proof_of_work(self):
-        new_proof = 1
-        check_proof = False
-        previous_proof = self.chain[-1]['proof']
-        while check_proof is False:
-            hash_operation = self.__calculate_hash_operation(new_proof, previous_proof)
-            if hash_operation[:4] == '0000':
-                check_proof = True
+        nonce = 0
+        nonce_found = False
+        block = {
+            'index': len(self.chain),
+            'previous_hash': self.chain[-1]['hash'] if len(self.chain) > 0 else '0' * 64
+        }
+        while nonce_found is False:
+            block['timestamp'] = str(datetime.datetime.now())
+            block['nonce'] = nonce
+            hashed_block = self.__hash_block(block)
+            if hashed_block[:4] == '0' * self.difficulty:
+                block['hash'] = hashed_block
+                nonce_found = True
             else:
-                new_proof += 1
-        return new_proof
+                nonce = (nonce + 1) % (2 ** 32)
+        return block
 
     @staticmethod
     def __hash_block(block):
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
-    @staticmethod
-    def __calculate_hash_operation(new_proof, previous_proof):
-        return hashlib.sha256(str(new_proof ** 2 - previous_proof ** 2).encode()).hexdigest()
-
     def mine_block(self):
-        proof = self.__proof_of_work()
-        block = self.__create_block(proof)
+        block = self.__proof_of_work()
+        self.__create_block(block)
         return block
 
     def is_chain_valid(self):
@@ -62,13 +56,12 @@ class Blockchain:
         block_index = 1
         while block_index < len(self.chain):
             block = self.chain[block_index]
-            previous_block_without_hash = {key: previous_block[key] for key in previous_block if key != 'hash'}
-            if block['previous_hash'] != self.__hash_block(previous_block_without_hash):
-                return False
-            previous_proof = previous_block['proof']
-            proof = block['proof']
-            hash_operation = self.__calculate_hash_operation(proof, previous_proof)
-            if hash_operation[:4] != '0000':
+            hashed_block = self.__hash_block({key: block[key] for key in block if key != 'hash'})
+            # Conditions to verify that the chain is valid
+            hash_is_not_correct = block['hash'] != hashed_block
+            hash_leading_zeros_is_not_correct = hashed_block[:4] != '0' * self.difficulty
+            linking_is_not_good = block['previous_hash'] != previous_block['hash']
+            if hash_is_not_correct or hash_leading_zeros_is_not_correct or linking_is_not_good:
                 return False
             previous_block = block
             block_index += 1
@@ -92,7 +85,7 @@ def mine_block():
         'message': 'Congratulations, you just mined a block!',
         'index': block['index'],
         'timestamp': block['timestamp'],
-        'proof': block['proof'],
+        'nonce': block['nonce'],
         'hash': block['hash'],
         'previous_hash': block['previous_hash']
     }
