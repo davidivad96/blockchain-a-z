@@ -22,17 +22,20 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.difficulty = 4
+        self.transactions = []
         self.mine_block()
 
     def __create_block(self, block):
         self.chain.append(block)
+        self.transactions = []
 
     def __proof_of_work(self):
         nonce = 0
         nonce_found = False
         block = {
             'index': len(self.chain),
-            'previous_hash': self.chain[-1]['hash'] if len(self.chain) > 0 else '0' * 64
+            'previous_hash': self.__get_last_block()['hash'] if len(self.chain) > 0 else '0' * 64,
+            'transactions': self.transactions
         }
         while nonce_found is False:
             block['timestamp'] = str(datetime.datetime.now())
@@ -44,6 +47,9 @@ class Blockchain:
             else:
                 nonce = (nonce + 1) % (2 ** 32)
         return block
+
+    def __get_last_block(self):
+        return self.chain[-1]
 
     @staticmethod
     def __hash_block(block):
@@ -70,6 +76,14 @@ class Blockchain:
             previous_block = block
             block_index += 1
         return True
+
+    def add_transaction(self, sender, receiver, amount):
+        self.transactions.append({
+            'sender': sender,
+            'receiver': receiver,
+            'amount': amount
+        })
+        return len(self.chain)
 
 
 # Part 2 - Mining our Blockchain
