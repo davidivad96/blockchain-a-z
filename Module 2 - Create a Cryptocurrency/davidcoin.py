@@ -30,8 +30,8 @@ class Blockchain:
     def __create_block(self, block):
         self.chain.append(block)
         self.transactions = [{
-            'sender': self.node_address,
-            'receiver': 'David',
+            'sender': None,
+            'receiver': self.node_address,
             'amount': 10
         }]
 
