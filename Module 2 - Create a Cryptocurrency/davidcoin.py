@@ -23,6 +23,7 @@ class Blockchain:
         self.chain = []
         self.difficulty = 4
         self.transactions = []
+        self.nodes = set()
         self.mine_block()
 
     def __create_block(self, block):
@@ -56,6 +57,27 @@ class Blockchain:
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
+    def __replace_chain(self):
+        network = self.nodes
+        longest_chain = None
+        max_length = len(self.chain)
+        for node in network:
+            response_1 = requests.get(f'http://{node}/get_chain')
+            response_2 = requests.get(f'http://{node}/is_valid')
+            if response_1.status_code == 200 and response_2.status_code == 200:
+                data_1 = response_1.json()
+                data_2 = response_2.json()
+                length = data_1['length']
+                chain = data_1['chain']
+                valid_chain = data_2['is_valid']
+                if length > max_length and valid_chain:
+                    max_length = length
+                    longest_chain = chain
+        if longest_chain:
+            self.chain = longest_chain
+            return True
+        return False
+
     def mine_block(self):
         block = self.__proof_of_work()
         self.__create_block(block)
@@ -84,6 +106,10 @@ class Blockchain:
             'amount': amount
         })
         return len(self.chain)
+
+    def add_node(self, address):
+        parsed_url = urlparse(address)
+        self.nodes.add(parsed_url.netloc)
 
 
 # Part 2 - Mining our Blockchain
