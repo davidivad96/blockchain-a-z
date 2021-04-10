@@ -131,7 +131,8 @@ def mine_block():
         'timestamp': block['timestamp'],
         'nonce': block['nonce'],
         'hash': block['hash'],
-        'previous_hash': block['previous_hash']
+        'previous_hash': block['previous_hash'],
+        'transactions': block['transactions']
     }
     return jsonify(response), 200
 
@@ -162,4 +163,5 @@ def is_valid():
 
 
 # Running the app
-app.run(host='0.0.0.0', port=5000)
+port = 5000
+app.run(host='0.0.0.0', port=port)
