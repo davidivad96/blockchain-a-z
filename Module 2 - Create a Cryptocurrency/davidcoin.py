@@ -24,11 +24,16 @@ class Blockchain:
         self.difficulty = 4
         self.transactions = []
         self.nodes = set()
+        self.node_address = str(uuid4()).replace('-', '')
         self.mine_block()
 
     def __create_block(self, block):
         self.chain.append(block)
-        self.transactions = []
+        self.transactions = [{
+            'sender': self.node_address,
+            'receiver': 'David',
+            'amount': 10
+        }]
 
     def __proof_of_work(self):
         nonce = 0
