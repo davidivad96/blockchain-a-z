@@ -22,8 +22,7 @@ class Blockchain:
         self.chain = []
         self.difficulty = 4
         self.transactions = []
-        self.nodes = set()
-        self.mine_block()
+        self.nodes = {'localhost:5001', 'localhost:5002'}
 
     def __create_block(self, block):
         self.chain.append(block)
@@ -122,6 +121,13 @@ app = Flask(__name__)
 
 # Instantiating the Blockchain
 blockchain = Blockchain()
+
+
+# Health check
+@app.route('/', methods=['GET'])
+def health_check():
+    response = {'message': 'Server up and running!'}
+    return jsonify(response), 200
 
 
 # Mining a new block
