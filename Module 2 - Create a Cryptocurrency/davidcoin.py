@@ -62,27 +62,6 @@ class Blockchain:
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
-    def __replace_chain(self):
-        network = self.nodes
-        longest_chain = None
-        max_length = len(self.chain)
-        for node in network:
-            response_1 = requests.get(f'http://{node}/get_chain')
-            response_2 = requests.get(f'http://{node}/is_valid')
-            if response_1.status_code == 200 and response_2.status_code == 200:
-                data_1 = response_1.json()
-                data_2 = response_2.json()
-                length = data_1['length']
-                chain = data_1['chain']
-                valid_chain = data_2['is_valid']
-                if length > max_length and valid_chain:
-                    max_length = length
-                    longest_chain = chain
-        if longest_chain:
-            self.chain = longest_chain
-            return True
-        return False
-
     def mine_block(self):
         block = self.__proof_of_work()
         self.__create_block(block)
@@ -103,6 +82,27 @@ class Blockchain:
             previous_block = block
             block_index += 1
         return True
+
+    def replace_chain(self):
+        network = self.nodes
+        longest_chain = None
+        max_length = len(self.chain)
+        for node in network:
+            response_1 = requests.get(f'http://{node}/get_chain')
+            response_2 = requests.get(f'http://{node}/is_valid')
+            if response_1.status_code == 200 and response_2.status_code == 200:
+                data_1 = response_1.json()
+                data_2 = response_2.json()
+                length = data_1['length']
+                chain = data_1['chain']
+                valid_chain = data_2['is_valid']
+                if length > max_length and valid_chain:
+                    max_length = length
+                    longest_chain = chain
+        if longest_chain:
+            self.chain = longest_chain
+            return True
+        return False
 
     def add_transaction(self, sender, receiver, amount):
         self.transactions.append({
@@ -194,6 +194,21 @@ def connect_node():
         'total_nodes': list(blockchain.nodes)
     }
     return jsonify(response), 201
+
+
+# Replacing the chain by the longest chain if needed
+@app.route('/replace_chain', methods=['GET'])
+def replace_chain():
+    chain_is_replaced = blockchain.replace_chain()
+    response = {
+        'message': 'Chain has been replaced by the longest one',
+        'new_chain': blockchain.chain
+    } if chain_is_replaced is True else {
+        'message': 'The chain is all good, no need to replace it',
+        'actual_chain': blockchain.chain
+    }
+    return jsonify(response), 200
+
 
 # Running the app
 port = 5000
