@@ -11,7 +11,6 @@ import hashlib
 import json
 from flask import Flask, jsonify, request
 import requests
-from uuid import uuid4
 from urllib.parse import urlparse
 
 
@@ -24,14 +23,13 @@ class Blockchain:
         self.difficulty = 4
         self.transactions = []
         self.nodes = set()
-        self.node_address = str(uuid4()).replace('-', '')
         self.mine_block()
 
     def __create_block(self, block):
         self.chain.append(block)
         self.transactions = [{
             'sender': None,
-            'receiver': self.node_address,
+            'receiver': 'David',
             'amount': 10
         }]
 
