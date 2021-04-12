@@ -12,6 +12,7 @@ import json
 from flask import Flask, jsonify, request
 import requests
 from urllib.parse import urlparse
+from uuid import uuid4
 
 
 # Part 1 - Building a Blockchain
@@ -28,6 +29,7 @@ class Blockchain:
     def __create_block(self, block):
         self.chain.append(block)
         self.transactions = [{
+            'id': str(uuid4()).replace('-', ''),
             'sender': None,
             'receiver': 'David',
             'amount': 10
@@ -60,6 +62,38 @@ class Blockchain:
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
 
+    def __append_transactions(self):
+        network = self.nodes
+        for node in network:
+            response = requests.get(f'http://{node}/get_transactions')
+            if response.status_code == 200:
+                data = response.json()
+                transactions = data['transactions']
+                for transaction in transactions:
+                    if transaction['id'] not in map(lambda x: x['id'], self.transactions):
+                        self.transactions.append(transaction)
+
+    def __replace_chain(self):
+        network = self.nodes
+        longest_chain = None
+        max_length = len(self.chain)
+        for node in network:
+            response_1 = requests.get(f'http://{node}/get_chain')
+            response_2 = requests.get(f'http://{node}/is_valid')
+            if response_1.status_code == 200 and response_2.status_code == 200:
+                data_1 = response_1.json()
+                data_2 = response_2.json()
+                length = data_1['length']
+                chain = data_1['chain']
+                valid_chain = data_2['is_valid']
+                if length > max_length and valid_chain:
+                    max_length = length
+                    longest_chain = chain
+        if longest_chain:
+            self.chain = longest_chain
+            return True
+        return False
+
     def mine_block(self):
         block = self.__proof_of_work()
         self.__create_block(block)
@@ -81,29 +115,14 @@ class Blockchain:
             block_index += 1
         return True
 
-    def replace_chain(self):
-        network = self.nodes
-        longest_chain = None
-        max_length = len(self.chain)
-        for node in network:
-            response_1 = requests.get(f'http://{node}/get_chain')
-            response_2 = requests.get(f'http://{node}/is_valid')
-            if response_1.status_code == 200 and response_2.status_code == 200:
-                data_1 = response_1.json()
-                data_2 = response_2.json()
-                length = data_1['length']
-                chain = data_1['chain']
-                valid_chain = data_2['is_valid']
-                if length > max_length and valid_chain:
-                    max_length = length
-                    longest_chain = chain
-        if longest_chain:
-            self.chain = longest_chain
-            return True
-        return False
+    def synchronize(self):
+        self.__append_transactions()
+        chain_replaced = self.__replace_chain()
+        return chain_replaced
 
     def add_transaction(self, sender, receiver, amount):
         self.transactions.append({
+            'id': str(uuid4()).replace('-', ''),
             'sender': sender,
             'receiver': receiver,
             'amount': amount
@@ -157,6 +176,16 @@ def get_chain():
     return jsonify(response), 200
 
 
+# Getting the transactions of the Blockchain
+@app.route('/get_transactions', methods=['GET'])
+def get_transactions():
+    response = {
+        'transactions': blockchain.transactions,
+        'length': len(blockchain.transactions)
+    }
+    return jsonify(response), 200
+
+
 # Checking if the Blockchain is valid
 @app.route('/is_valid', methods=['GET'])
 def is_valid():
@@ -202,9 +231,9 @@ def connect_node():
 
 
 # Replacing the chain by the longest chain if needed
-@app.route('/replace_chain', methods=['GET'])
-def replace_chain():
-    chain_is_replaced = blockchain.replace_chain()
+@app.route('/synchronize', methods=['GET'])
+def synchronize():
+    chain_is_replaced = blockchain.synchronize()
     response = {
         'message': 'Chain has been replaced by the longest one',
         'new_chain': blockchain.chain
