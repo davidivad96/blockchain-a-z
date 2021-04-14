@@ -34,6 +34,9 @@ class Blockchain:
             'receiver': 'David',
             'amount': 10
         }]
+        network = self.nodes
+        for node in network:
+            requests.delete(f'http://{node}/remove_transactions')
 
     def __proof_of_work(self):
         nonce = 0
@@ -128,6 +131,9 @@ class Blockchain:
             'amount': amount
         })
         return len(self.chain)
+
+    def remove_transactions(self):
+        self.transactions = []
 
     def add_node(self, address):
         parsed_url = urlparse(address)
@@ -241,6 +247,14 @@ def synchronize():
         'message': 'The chain is all good, no need to replace it',
         'actual_chain': blockchain.chain
     }
+    return jsonify(response), 200
+
+
+# Resetting the transactions
+@app.route('/remove_transactions', methods=['DELETE'])
+def remove_transactions():
+    blockchain.remove_transactions()
+    response = {'message': 'Transactions have been removed'}
     return jsonify(response), 200
 
 
